@@ -1,0 +1,8 @@
+[package]
+name = "activity"
+version = "0.0.1"
+authors = ["Martin Sandrock <msandrock@gmx.de>"]
+
+[dependencies]
+text_io = "0.1.8"
+wordexp = "0.1.0"
