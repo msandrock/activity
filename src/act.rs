@@ -4,12 +4,15 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{BufReader, Lines, Result};
 use std::path::Path;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
+
+static DATA_FILE: &str = "./activity.log";
+const SECONDS_IN_DAY: u64 = 43200;
 
 pub struct Activity {
     name: String,
     note: String,
-    cooloff_days: u32,
+    cooloff_days: u64,
     last_activity: u64
 }
 
@@ -22,7 +25,7 @@ pub struct Activity {
     }
 }*/
 
-fn init_activity(name: &str, note: &str, cooloff_days: u32) -> Activity {
+fn init_activity(name: &str, note: &str, cooloff_days: u64) -> Activity {
     Activity {
         name: name.to_string(),
         note: note.to_string(),
@@ -71,9 +74,9 @@ pub fn load_activities(file_path: String) -> Vec<Activity> {
                 let mut line_parts = raw.split(",");
 
                 // TODO: Get rid of unwrap() calls, since they can panic
-                let name = line_parts.next().unwrap();
+                let name = line_parts.next().unwrap().trim_matches('"');
                 let note = line_parts.next().unwrap();
-                let cooloff_days = line_parts.next().unwrap().parse::<u32>().unwrap();
+                let cooloff_days = line_parts.next().unwrap().parse::<u64>().unwrap();
 
                 activities.push(init_activity(name, note, cooloff_days));
             }
@@ -91,13 +94,12 @@ fn get_elapsed_days(last_activity: u64) -> String {
     };
 
     // Calculate number of elapsed days
-    let seconds_in_day = 43200;
-    let elapsed_days = (now - last_activity) / seconds_in_day;
+    let elapsed_days = (now - last_activity) / SECONDS_IN_DAY;
 
     return format!("{} Tage", elapsed_days);
 }
 
-pub fn print_activity(activity: Activity) {
+pub fn print_activity(activity: &Activity) {
     let last_activity: String = if activity.last_activity == 0 {
         "Never".to_string()
     } else {
@@ -105,4 +107,56 @@ pub fn print_activity(activity: Activity) {
     };
 
     println!("{} ({} - Alle {} Tage) Letzte: {}", activity.name, activity.note, activity.cooloff_days, last_activity);
+}
+
+fn find_activity(activites: &Vec<Activity>, name: &str) -> i32 {
+    let mut index: i32 = 0;
+
+    for activity in activites {
+        if activity.name == name {
+            return index;
+        }
+
+        index += 1;
+    }
+
+    return -1;
+}
+
+pub fn sort_by_due_activity<'a>(activities: &'a mut Vec<Activity>) {
+    let expanded_file_path = expand_file_path(DATA_FILE.to_string());
+
+    if let Ok(lines) = read_lines(expanded_file_path) {
+        // Consumes the iterator, returns an (Optional) String
+        for line in lines {
+            if let Ok(raw) = line {
+                // Split line by ; delimiter
+                let mut iterator = raw.split(";");
+
+                let name = iterator.next().unwrap();
+                let last_activity = iterator.next().unwrap().parse::<u64>().unwrap();
+
+                // Find the activity in the activities array
+                let activity_index = find_activity(activities, name);
+                // Skip unknown activities
+                if activity_index < 0 {
+                    continue;
+                }
+
+                /*let element = activities.iter().nth(activity_index);
+                match  {
+                    Some(val) => val.last_activity =
+                }*/
+
+                // Update the array, if there is a newer activity in the log
+                if activities[activity_index as usize].last_activity < last_activity {
+                    activities[activity_index as usize].last_activity = last_activity;
+                }
+            }
+        }
+    }
+
+    // Sort all activities by difference between lastActivity minus cooloff time
+    let cmp = |l: &Activity, r: &Activity| (l.last_activity + (l.cooloff_days * SECONDS_IN_DAY)).cmp(&(r.last_activity + (r.cooloff_days * SECONDS_IN_DAY)));
+    activities.sort_by(cmp)
 }
