@@ -1,6 +1,6 @@
 extern crate wordexp;
 
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use std::io::{BufReader, Lines, Result};
 use std::path::Path;
@@ -159,4 +159,24 @@ pub fn sort_by_due_activity<'a>(activities: &'a mut Vec<Activity>) {
     // Sort all activities by difference between lastActivity minus cooloff time
     let cmp = |l: &Activity, r: &Activity| (l.last_activity + (l.cooloff_days * SECONDS_IN_DAY)).cmp(&(r.last_activity + (r.cooloff_days * SECONDS_IN_DAY)));
     activities.sort_by(cmp)
+}
+
+pub fn add_activity_log(activity: &Activity) {
+    let expanded_file_path = expand_file_path(DATA_FILE.to_string());
+
+    // Get current timestamp
+    let now: u64 = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(n) => n.as_secs(),
+        Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+    };
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(expanded_file_path)
+        .unwrap();
+
+    if let Err(e) = writeln!(file, "{},{}", activity.name, now) {
+        eprintln!("Couldn't write to file: {}", e);
+    }
 }

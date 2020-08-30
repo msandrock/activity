@@ -32,7 +32,7 @@ fn main() {
             break;
         }
         if line == "ok" {
-            // add activity
+            act::add_activity_log(&activities[0]);
             break;
         }
 
