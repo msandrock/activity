@@ -109,18 +109,18 @@ pub fn print_activity(activity: &Activity) {
     println!("{} ({} - Alle {} Tage) Letzte: {}", activity.name, activity.note, activity.cooloff_days, last_activity);
 }
 
-fn find_activity(activites: &Vec<Activity>, name: &str) -> i32 {
+fn find_activity(activites: &Vec<Activity>, name: &str) -> Option<usize> {
     let mut index: i32 = 0;
 
     for activity in activites {
         if activity.name == name {
-            return index;
+            return Some(index as usize);
         }
 
         index += 1;
     }
 
-    return -1;
+    return None;
 }
 
 pub fn sort_by_due_activity<'a>(activities: &'a mut Vec<Activity>) {
@@ -139,18 +139,15 @@ pub fn sort_by_due_activity<'a>(activities: &'a mut Vec<Activity>) {
                 // Find the activity in the activities array
                 let activity_index = find_activity(activities, name);
                 // Skip unknown activities
-                if activity_index < 0 {
+                if activity_index.is_none() {
                     continue;
                 }
 
-                /*let element = activities.iter().nth(activity_index);
-                match  {
-                    Some(val) => val.last_activity =
-                }*/
+                let i = activity_index.unwrap();
 
                 // Update the array, if there is a newer activity in the log
-                if activities[activity_index as usize].last_activity < last_activity {
-                    activities[activity_index as usize].last_activity = last_activity;
+                if activities[i].last_activity < last_activity {
+                    activities[i].last_activity = last_activity;
                 }
             }
         }
@@ -176,7 +173,7 @@ pub fn add_activity_log(activity: &Activity) {
         .open(expanded_file_path)
         .unwrap();
 
-    if let Err(e) = writeln!(file, "{},{}", activity.name, now) {
+    if let Err(e) = writeln!(file, "{};{}", activity.name, now) {
         eprintln!("Couldn't write to file: {}", e);
     }
 }
