@@ -16,6 +16,17 @@ pub struct Activity {
     last_activity: u64
 }
 
+impl Activity {
+    fn new(name: &str, note: &str, cooloff_days: u64) -> Activity {
+        Activity {
+            name: name.to_string(),
+            note: note.to_string(),
+            cooloff_days,
+            last_activity: 0
+        }
+    }
+}
+
 /*impl<'a> Activity<'a> {
     // Create an Activity from a str of form "name, note".
     fn from_csv(s: &'a str) -> Option<Self> {
@@ -24,15 +35,6 @@ pub struct Activity {
         )
     }
 }*/
-
-fn init_activity(name: &str, note: &str, cooloff_days: u64) -> Activity {
-    Activity {
-        name: name.to_string(),
-        note: note.to_string(),
-        cooloff_days,
-        last_activity: 0
-    }
-}
 
 fn expand_file_path(file_path: String) -> String {
     use self::wordexp::{wordexp, Wordexp};
@@ -78,7 +80,7 @@ pub fn load_activities(file_path: String) -> Vec<Activity> {
                 let note = line_parts.next().unwrap();
                 let cooloff_days = line_parts.next().unwrap().parse::<u64>().unwrap();
 
-                activities.push(init_activity(name, note, cooloff_days));
+                activities.push(Activity::new(name, note, cooloff_days));
             }
         }
     }
@@ -101,7 +103,7 @@ fn get_elapsed_days(last_activity: u64) -> String {
 
 pub fn print_activity(activity: &Activity) {
     let last_activity: String = if activity.last_activity == 0 {
-        "Never".to_string()
+        String::from("Never")
     } else {
         get_elapsed_days(activity.last_activity)
     };

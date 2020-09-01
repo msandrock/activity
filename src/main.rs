@@ -11,7 +11,7 @@ fn main() {
     let file_path = if args.len() > 1 {
         format!("./{}.def", args[1].trim())
     } else {
-        "./default.def".to_string()
+        String::from("./default.def")
     };
 
     let mut activities = act::load_activities(file_path);
