@@ -27,28 +27,19 @@ impl Activity {
     }
 }
 
-/*impl<'a> Activity<'a> {
-    // Create an Activity from a str of form "name, note".
-    fn from_csv(s: &'a str) -> Option<Self> {
-        s.split(',').collect_tuple().map(
-            |(last, first)| Person { first, last }
-        )
-    }
-}*/
-
 fn expand_file_path(file_path: String) -> String {
     use self::wordexp::{wordexp, Wordexp};
     // Returns Result<Wordexp, WordexpError>
     let result = wordexp(&file_path, Wordexp::new(0), 0);
 
     if result.is_err() {
-        panic!("Could not expand file path");
+        panic!("Could not expand file path. Please make sure the file exists.");
     }
 
     // we_wordv is Vec<Option<str'>>
     let expanded: String = match result.unwrap().we_wordv[0] {
         Some(w) => w.to_string(),
-        None => panic!("Result is empty"),
+        None => panic!("Could not expand file path. Result is empty."),
     };
 
     return expanded;
@@ -60,27 +51,59 @@ where P: AsRef<Path>, {
     Ok(BufReader::new(file).lines())
 }
 
+fn parse_activity_line(line: String) -> std::result::Result<Activity, &'static str> {
+    if line == "" || line.starts_with('#') {
+        return Err("Empty or disabled line");
+    }
+
+    // Get an iterator for the line parts
+    let mut line_parts = line.split(",");
+
+    let name: &str = match line_parts.next() {
+        Some(n) => n.trim_matches('"'),
+        None => {
+            println!("Skipping line {}", line);
+            return Err("Missing name");
+        }
+    };
+
+    let note: &str = match line_parts.next() {
+        Some(n) => n,
+        None => {
+            println!("Skipping line {}", line);
+            return Err("Missing note");
+        }
+    };
+
+    let cooloff_days = match line_parts.next() {
+        Some(d) => match d.parse::<u64>() {
+            Ok(n) => n,
+            Err(_) => {
+                println!("Skipping line {}", line);
+                return Err("Error parsing cooloff days");
+            }
+        },
+        None => {
+            println!("Skipping line {}", line);
+            return Err("Missing cooloff days");
+        }
+    };
+
+    return Ok(Activity::new(name, note, cooloff_days));
+}
+
 pub fn load_activities(file_path: String) -> Vec<Activity> {
     let mut activities: Vec<Activity> = Vec::new();
     let expanded_file_path = expand_file_path(file_path);
 
     if let Ok(lines) = read_lines(expanded_file_path) {
-        // Consumes the iterator, returns an (Optional) String
+        // Consumes the iterator, returns an Option<String>
         for line in lines {
             if let Ok(raw) = line {
-                // Ignore empty and commented out lines
-                if raw == "" || raw.starts_with('#') {
-                    continue;
+                match parse_activity_line(raw) {
+                    Ok(activity) => activities.push(activity),
+                    Err(e) => println!("Skipping line - {}", e)
                 }
-                // Get an iterator for the line parts
-                let mut line_parts = raw.split(",");
-
-                // TODO: Get rid of unwrap() calls, since they can panic
-                let name = line_parts.next().unwrap().trim_matches('"');
-                let note = line_parts.next().unwrap();
-                let cooloff_days = line_parts.next().unwrap().parse::<u64>().unwrap();
-
-                activities.push(Activity::new(name, note, cooloff_days));
             }
         }
     }

@@ -36,6 +36,6 @@ fn main() {
             break;
         }
 
-        println!("Ich verstehe nur 'ok' und 'quit'");
+        println!("Supported commands are 'ok' and 'quit'");
     }
 }
