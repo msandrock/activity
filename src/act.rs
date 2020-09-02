@@ -131,11 +131,11 @@ pub fn print_activity(activity: &Activity) {
         get_elapsed_days(activity.last_activity)
     };
 
-    println!("{} ({} - Alle {} Tage) Letzte: {}", activity.name, activity.note, activity.cooloff_days, last_activity);
+    println!("{} ({} - Every {} days) Last: {}", activity.name, activity.note, activity.cooloff_days, last_activity);
 }
 
 fn find_activity(activites: &Vec<Activity>, name: &str) -> Option<usize> {
-    let mut index: i32 = 0;
+    let mut index: u32 = 0;
 
     for activity in activites {
         if activity.name == name {
@@ -158,8 +158,27 @@ pub fn sort_by_due_activity<'a>(activities: &'a mut Vec<Activity>) {
                 // Split line by ; delimiter
                 let mut iterator = raw.split(";");
 
-                let name = iterator.next().unwrap();
-                let last_activity = iterator.next().unwrap().parse::<u64>().unwrap();
+                let name = match iterator.next() {
+                    Some(n) => n,
+                    None => {
+                        println!("Skipping corrupted record {}", raw);
+                        continue
+                    }
+                };
+
+                let last_activity = match iterator.next() {
+                    Some(n) => match n.parse::<u64>() {
+                        Ok(l) => l,
+                        Err(_) => {
+                            println!("Skipping corrupted record {}", raw);
+                            continue
+                        }
+                    }
+                    None => {
+                        println!("Skipping corrupted record {}", raw);
+                        continue
+                    }
+                };
 
                 // Find the activity in the activities array
                 let activity_index = find_activity(activities, name);
