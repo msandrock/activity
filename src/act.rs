@@ -27,10 +27,10 @@ impl Activity {
     }
 }
 
-fn expand_file_path(file_path: String) -> String {
+fn expand_file_path(file_path: &str) -> String {
     use self::wordexp::{wordexp, Wordexp};
     // Returns Result<Wordexp, WordexpError>
-    let result = wordexp(&file_path, Wordexp::new(0), 0);
+    let result = wordexp(file_path, Wordexp::new(0), 0);
 
     if result.is_err() {
         panic!("Could not expand file path. Please make sure the file exists.");
@@ -92,7 +92,7 @@ fn parse_activity_line(line: String) -> std::result::Result<Activity, &'static s
     return Ok(Activity::new(name, note, cooloff_days));
 }
 
-pub fn load_activities(file_path: String) -> Vec<Activity> {
+pub fn load_activities(file_path: &str) -> Vec<Activity> {
     let mut activities: Vec<Activity> = Vec::new();
     let expanded_file_path = expand_file_path(file_path);
 
@@ -149,8 +149,8 @@ fn find_activity(activites: &Vec<Activity>, name: &str) -> Option<usize> {
 }
 
 pub fn sort_by_due_activity<'a>(activities: &'a mut Vec<Activity>) {
-    let expanded_file_path = expand_file_path(DATA_FILE.to_string());
-
+    let expanded_file_path = expand_file_path(DATA_FILE);
+    // Read the activity log file
     if let Ok(lines) = read_lines(expanded_file_path) {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
@@ -203,7 +203,7 @@ pub fn sort_by_due_activity<'a>(activities: &'a mut Vec<Activity>) {
 }
 
 pub fn add_activity_log(activity: &Activity) {
-    let expanded_file_path = expand_file_path(DATA_FILE.to_string());
+    let expanded_file_path = expand_file_path(DATA_FILE);
 
     // Get current timestamp
     let now: u64 = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {

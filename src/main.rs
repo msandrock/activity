@@ -14,7 +14,7 @@ fn main() {
         String::from("./default.def")
     };
 
-    let mut activities = act::load_activities(file_path);
+    let mut activities = act::load_activities(&file_path);
 
     // sortByDueActivity
     act::sort_by_due_activity(&mut activities);
